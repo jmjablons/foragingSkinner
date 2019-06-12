@@ -1,34 +1,30 @@
 \foraging
 \Date: 2019.06.12
 
-\Inputs
-^L = 1 \right
-^R = 2 \left
-^C = 3 \center
-^Nosepoke = 4 \as marked
+\INPUTS
+^L = 1
+^R = 2
+^C = 3
+^Nosepoke = 4
 
-\Outputs
+\OUTPUTS
 ^Light = 1
 ^PelletDispenser = 2
 
-\Variables
-\ A = number of choices
-\ B = number of rewards
-\ C = data array center
-\ R = data array right
-\ L = data array left
-\ P = data array nosepokes
-\ M = max time min
-\ N = sessions timer
-\ Q = maximum rewards
-\ X = FR
+\VARIABLES
+\ A  number of choices
+\ B  number of rewards
+\ C  number of nosepokes
+\ R  data array responses
+\ M  max time min
+\ N  session timer 1"
+\ T  session timer 0.01"
+\ Q  maximum rewards
+\ X  FR
 
-DIM C = 999
-DIM R = 999
-DIM L = 999
-DIM P = 999
-
-\TODO code which side is rewarded
+DIM R = 500000
+\TODO define which side is rewarded
+\ --- now see: S.S.1(S3)
 
 S.S.1 \MAIN TASK
 S1,
@@ -38,25 +34,32 @@ S2,
   #START: --> S3
 
 S3,
-  X#R^L = ON ^PelletDispenser; Z1 --> S2 \rewarded side L
-  #Z2: --> S1 \po co to?
+  X#R^L = ON ^PelletDispenser; ADD B, Z9 --> S4
 
-S.S.2 \RESPONSE COUNTER
+S4,
+  0.5": OFF ^PelletDispenser --> S2 \DIRTY; CHECK VALUE
+
+S.S.2 \RESPONSE DETECT
+\shouldnt reactions be separated?
+\ --- to ensure each is saved the same time?
 S1,
-  #START: SHOW 3,Responses,A --> SX
+  #START: --> SX
 
 S2,
-  #R^R: ADD A; SHOW 3,Responses,A --> SX
-  #R^L: ADD A; SHOW 3,Responses,A --> SX
-  #R^C: ADD A; SHOW 3,Responses,A --> SX
-  #Z2: --> S1
+  #R^R: ADD A, Z4 --> SX
+  #R^L: ADD A, Z5 --> SX
+  #R^C: ADD A, Z6 --> SX
+  #R^P: ADD C, Z7 --> SX
 
-S.S.3 \REWARD COUNTER
+S.S.3 \STATE DISPLAY
 S1,
-  #Z1: ADD B; SHOW 4,Rewards,B --> S2
+  #START --> S2
 
 S2,
-  \0.05": OFF ^PelletDispenser --> S1 \commented, not sure if needed
+  1": SHOW 1,Session,N;
+      SHOW 2,Choices,A;
+      SHOW 3,Rewards,B;
+      SHOW 4,Nosepokes,C --> SX
 
 S.S.4 \TIME INCREMENT
 S1,
@@ -70,24 +73,21 @@ S1,
   #START: --> S2
 
 S2,
-  #R^R: SET R(I) = T, T = 0; ADD I; \WHY T = 0 ???
-        SET R(I) = -987.987 --> SX
-  #R^L: SET L(J) = T, T = 0; ADD J;
-        SET L(J) = -987.987 --> SX
-  #R^C: SET C(K) = T, T = 0; ADD K;
-        SET C(K) = -987.987 --> SX
-  #R^Nosepoke: SET C(K) = T, T = 0; ADD K;
-        SET C(K) = -987.987 --> SX
-  #Z2: --> S1
+  #Z0: SET R(I) = T; ADD I;
+  #Z4: Z0; SET R(I) = "R"; ADD I --> SX \STRING OR NUMERIC?
+  #Z5: Z0; SET R(I) = "L"; ADD I --> SX
+  #Z6: Z0; SET R(I) = "C"; ADD I --> SX
+  #Z7: Z0; SET R(I) = "P"; ADD I --> SX
+  #Z9: Z0; SET R(I) = "F"; ADD I --> SX
 
-S.S.6 \STOP CONDITIONS
+S.S.6 \FINISH CONDITIONS
 S1,
-  #START: SHOW 1,Session,N --> S2
-S2,
+  #START: --> S2
+S2,s
   1": ADD N; SHOW 1,Session, N/60;
-      IF (N/60 < M) OR (Q <= B) [@True, @False]
-        @True: Z2 --> S3
-        @False: --> SX
+      IF (N/60 <= M) OR (Q <= B) [@End, @Continue]
+        @End: SET N(G) = -987.987 --> S3
+        @Continue: --> SX
 
 S3,
-  5": PRINT --> STOPABORTFLUSH
+  3": PRINT --> STOPABORTFLUSH
