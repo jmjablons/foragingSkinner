@@ -1,1 +1,22 @@
 \foraging
+\Date: 2019.06.12
+
+\Inputs
+^L = 1
+^R = 2
+^C = 3
+^Nosepoke = 4
+
+\Outputs
+^Light = 1
+^PelletDispenser = 2
+
+\Variables
+\ A = number of responses
+\ B = number of rewards
+\ C = data array
+\ M = max time min
+\ N = sessions timer
+\ Q = maximum rewards
+
+DIM C = 999
