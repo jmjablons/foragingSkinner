@@ -12,11 +12,78 @@
 ^PelletDispenser = 2
 
 \Variables
-\ A = number of responses
+\ A = number of choices
 \ B = number of rewards
-\ C = data array
+\ C = data array center
+\ R = data array right
+\ L = data array left
+\ P = data array nosepokes
 \ M = max time min
 \ N = sessions timer
 \ Q = maximum rewards
+\ X = FR
 
 DIM C = 999
+\TODO code which side is rewarded
+
+S.S.1 \main control logic
+S1,
+  0.01": SET Q = 100, M = 60 --> S2
+
+S2,
+  #START: --> S3
+
+S3,
+  X#R^L = ON ^PelletDispenser; Z1 --> S2 \rewarded side L
+  #Z2 --> S1
+
+S.S.2 \RESPONSE COUNTER
+S1,
+  #START: SHOW 3,Responses,A --> SX
+
+S2,
+  #R^R: ADD A; SHOW 3,Responses,A --> SX
+  #R^L: ADD A; SHOW 3,Responses,A --> SX
+  #R^C: ADD A; SHOW 3,Responses,A --> SX
+  #Z2: --> S1
+
+S.S.3 \REWARD COUNTER
+S1,
+  #Z1: ADD B; SHOW 4,Rewards,B --> S2
+
+S2,
+  \0.05": OFF ^PelletDispenser --> S1
+
+S.S.4 \TIME INCREMENT
+S1,
+  #START: --> S2
+
+S2,
+  0.01": SET T = T + 0.01 --> SX
+
+S.S.5 \RECORD TIME IRT
+S1,
+  #START: --> S2
+
+S2,
+  #R^R: SET R(I) = T, T = 0; ADD I; \WHY T = 0 ???
+        SET R(I) = -987.987 --> SX
+  #R^L: SET L(J) = T, T = 0; ADD J;
+        SET L(J) = -987.987 --> SX
+  #R^C: SET C(K) = T, T = 0; ADD K;
+        SET C(K) = -987.987 --> SX
+  #R^Nosepoke: SET C(K) = T, T = 0; ADD K;
+        SET C(K) = -987.987 --> SX
+  #Z2: --> S1
+
+S.S.6 \STOP CONDITIONS
+S1,
+  #START: SHOW 1,Session,N --> S2
+S2,
+  1": ADD N; SHOW 1,Session, N/60;
+      IF (N/60 < M) OR (Q <= B) [@True, @False]
+        @True: Z2 --> S3
+        @False: --> SX
+
+S3,
+  5": PRINT --> STOPABORTFLUSH
