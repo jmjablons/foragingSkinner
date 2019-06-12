@@ -34,7 +34,7 @@ S2,
   #START: --> S3
 
 S3,
-  X#R^L = ON ^PelletDispenser; ADD B, Z9 --> S4
+  X#R^L: ON ^PelletDispenser; ADD B, Z9 --> S4
 
 S4,
   0.5": OFF ^PelletDispenser --> S2 \DIRTY; CHECK VALUE
