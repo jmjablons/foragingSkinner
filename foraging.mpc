@@ -74,11 +74,11 @@ S1,
 
 S2,
   #Z0: SET R(I) = T; ADD I;
-  #Z4: Z0; SET R(I) = "R"; ADD I --> SX \STRING OR NUMERIC?
-  #Z5: Z0; SET R(I) = "L"; ADD I --> SX
-  #Z6: Z0; SET R(I) = "C"; ADD I --> SX
-  #Z7: Z0; SET R(I) = "P"; ADD I --> SX
-  #Z9: Z0; SET R(I) = "F"; ADD I --> SX
+  #Z4: Z0; SET R(I) = 1; ADD I --> SX \STRING OR NUMERIC?
+  #Z5: Z0; SET R(I) = 2; ADD I --> SX
+  #Z6: Z0; SET R(I) = 3; ADD I --> SX
+  #Z7: Z0; SET R(I) = 5; ADD I --> SX
+  #Z9: Z0; SET R(I) = 4; ADD I --> SX
 
 S.S.6 \FINISH CONDITIONS
 S1,
