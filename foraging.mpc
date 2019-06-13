@@ -15,12 +15,14 @@
 \ A  number of choices
 \ B  number of rewards
 \ C  number of nosepokes
-\ R  data array responses
 \ M  max time min
 \ N  session timer 1"
+\ R  data array responses
 \ T  session timer 0.01"
 \ Q  maximum rewards
+\ W  number of subsequent repetitions
 \ X  FR
+\ Z  temporary pellet state
 
 DIM R = 500000
 \TODO define which side is rewarded
@@ -34,7 +36,9 @@ S2,
   #START: --> S3
 
 S3,
-  X#R^L: ON ^PelletDispenser; ADD B, Z9 --> S4
+  X#R^L: IF V <= 0 [@Continue, @Punish]
+    @Continue: ON ^PelletDispenser; ADD B; SET Z = 1 --> S4
+    @Punish: --> S2
 
 S4,
   0.5": OFF ^PelletDispenser --> S2 \DIRTY; CHECK VALUE
@@ -46,10 +50,10 @@ S1,
   #START: --> SX
 
 S2,
-  #R^R: ADD A, Z4 --> SX
-  #R^L: ADD A, Z5 --> SX
-  #R^C: ADD A, Z6 --> SX
-  #R^P: ADD C, Z7 --> SX
+  #R^R: ADD A, Z4, Z10 --> SX
+  #R^L: ADD A, ADD W, Z5, Z10 --> SX \Z10 checks for punishment
+  #R^C: ADD A, Z6, Z10 --> SX
+  #R^P: ADD C, Z7; SET Z = 0 --> SX
 
 S.S.3 \STATE DISPLAY
 S1,
@@ -73,14 +77,23 @@ S1,
   #START: --> S2
 
 S2,
-  #Z0: SET R(I) = T; ADD I;
-  #Z4: Z0; SET R(I) = "R"; ADD I --> SX \STRING OR NUMERIC?
-  #Z5: Z0; SET R(I) = "L"; ADD I --> SX
-  #Z6: Z0; SET R(I) = "C"; ADD I --> SX
-  #Z7: Z0; SET R(I) = "P"; ADD I --> SX
-  #Z9: Z0; SET R(I) = "F"; ADD I --> SX
+  #Z0:SET R(I) = T; ADD I;
+  #Z4:Z0; SET R(I) = "R"; ADD I --> SX \STRING OR NUMERIC?
+  #Z5:Z0; SET R(I) = "L"; ADD I --> SX
+  #Z6:Z0; SET R(I) = "C"; ADD I --> SX
+  #Z7:Z0; SET R(I) = "P"; ADD I --> SX
+  #Z9:Z0; SET R(I) = "F"; ADD I --> SX
 
-S.S.6 \FINISH CONDITIONS
+S.S.6 \PUNISHMENT
+S1,
+  #Z10: IF (Z == 1) AND (W >= (X + 1)) [@Punish, @Continue]
+    @Punish: OFF ^Light; SET V = 1 --> S2
+    @Continue: --> SX
+
+S2,
+  60": ON ^Light; SET V = 0 --> S1
+
+S.S.7 \FINISH CONDITIONS
 S1,
   #START: --> S2
 S2,s
