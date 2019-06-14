@@ -1,15 +1,19 @@
 \foraging
 \Date: 2019.06.12
-
+\Edit: 2019.06.14
+\-----------------------------------------------------------
 \INPUTS
-^L = 1
-^R = 2
-^C = 3
-^Nosepoke = 4
+^Left = 1   \CHECK
+^Right = 2  \CHECK
+^Center = 3
+^Nosepoke = 6
 
 \OUTPUTS
-^Light = 1
-^PelletDispenser = 2
+^PelletDispenser = 12
+^CenterHoleLight = 3
+^HouseFanOperate = 9
+^HouseLightOperate = 11
+^MagazineLight = 10
 
 \VARIABLES
 \ A  number of choices
@@ -20,46 +24,70 @@
 \ N  session timer 1"
 \ T  session timer 0.01"
 \ Q  maximum rewards
+\ W  food available
 \ X  FR
 
 DIM R = 500000
 \TODO define which side is rewarded
-\ --- now see: S.S.1(S3)
+\ --- now see: S.S.1(S2)
 
-S.S.1 \MAIN TASK
+\-----------------------------------------------------------
+\MAIN TASK
+\-----------------------------------------------------------
+S.S.1
 S1,
-  #START:: SET Q = 100, M = 60, X = 5 --> S2
+  #START: SET Q = 100, M = 60, X = 5;
+          ON ^HouseFanOperate;
+          ON ^HouseLightOperate --> S2
 
 S2,
-  X#R^L: ON ^PelletDispenser; ADD B, Z9 --> S3
+  X#R^Left: Z21 --> S3 \DO REPETITIONS
 
 S3,
-#R^R: ADD A, Z4 --> S4
-#R^L: ADD A, Z5 --> S4
-#R^C: ADD A, Z6 --> S4
-#R^P: ADD C, Z7 --> S2
+  #R^Right: Z22 --> S4      \BAD IDEA
+  #R^Left: Z22 --> S4       \NOPE
+  #R^Center: Z22 --> S4     \CALL IT A MISTAKE
+  #R^Nosepoke: --> S2       \WELL DONE
 
+S4, \PUNISH
+  #Z22: OFF ^HouseLightOperate; \+ OFF ^MAGAZINE LIGHT?
+        Z10 --> S5
 
-S4,
+S5, \END TIMEOUT
+  60": ON ^HouseLightOperate --> S2
 
-zly czas: ---> s2
+\-----------------------------------------------------------
+\OPERATE FOOD
+\-----------------------------------------------------------
+S.S.3
+S1,
+  #Z21: ON ^PelletDispenser;
+        ADD B;
+        ON ^MagazineLight;
+        SET W = 1;
+        Z9 --> S2
 
-S4,
-  0.5": OFF ^PelletDispenser --> S2 \DIRTY; CHECK VALUE
+S2,
+  0.5": OFF ^PelletDispenser;
+        OFF ^MagazineLight --> S1
 
-S.S.2 \RESPONSE DETECT
-\shouldnt reactions be separated?
-\ --- to ensure each is saved the same time?
+\-----------------------------------------------------------
+\RESPONSE DETECT
+\-----------------------------------------------------------
+S.S.4
 S1,
   #START: --> SX
 
 S2,
-  #R^R: ADD A, Z4 --> SX
-  #R^L: ADD A, Z5 --> SX
-  #R^C: ADD A, Z6 --> SX
-  #R^P: ADD C, Z7 --> SX
+  #R^Right: ADD A; Z4 --> SX
+  #R^Left: ADD A; Z5 --> SX
+  #R^Center: ADD A; Z6 --> SX
+  #R^Nosepoke: ADD C; Z7; SET W = 0 --> SX
 
-S.S.3 \STATE DISPLAY
+\-----------------------------------------------------------
+\STATE DISPLAY
+\-----------------------------------------------------------
+S.S.5
 S1,
   #START --> S2
 
@@ -69,30 +97,40 @@ S2,
       SHOW 3,Rewards,B;
       SHOW 4,Nosepokes,C --> SX
 
-S.S.4 \TIME INCREMENT
+\-----------------------------------------------------------
+\TIME INCREMENT
+\-----------------------------------------------------------
+S.S.6
 S1,
   #START: --> S2
 
 S2,
   0.01": SET T = T + 0.01 --> SX
 
-S.S.5 \RECORD TIME IRT
+\-----------------------------------------------------------
+\RECORD EVENT IRT
+\-----------------------------------------------------------
+S.S.7
 S1,
   #START: --> S2
 
 S2,
-  #Z0: SET R(I) = T; ADD I;
-  #Z4: Z0; SET R(I) = 1; ADD I --> SX \STRING OR NUMERIC?
-  #Z5: Z0; SET R(I) = 2; ADD I --> SX
-  #Z6: Z0; SET R(I) = 3; ADD I --> SX
-  #Z7: Z0; SET R(I) = 5; ADD I --> SX
-  #Z9: Z0; SET R(I) = 4; ADD I --> SX
+  #Z0: SET R(I) = T; ADD I --> SX     \TIME
+  #Z4: Z0; SET R(I) = 1; ADD I --> SX \RIGHT
+  #Z5: Z0; SET R(I) = 2; ADD I --> SX \LEFT
+  #Z6: Z0; SET R(I) = 3; ADD I --> SX \CENTER
+  #Z7: Z0; SET R(I) = 5; ADD I --> SX \NOSEPOKE
+  #Z9: Z0; SET R(I) = 4; ADD I --> SX \FOOD GIVEN
+  #Z10:Z0; SET R(I) = 6; ADD I --> SX \IF TIMEOUT
 
-S.S.6 \FINISH CONDITIONS
+-----------------------------------------------------------
+\FINISH CONDITIONS
+-----------------------------------------------------------
+S.S.8
 S1,
   #START: --> S2
-S2,s
-  1": ADD N; SHOW 1,Session, N/60;
+S2,
+  0.1": ADD N; SHOW 1,Session, N/60;
       IF (N/60 <= M) OR (Q <= B) [@End, @Continue]
         @End: SET N(G) = -987.987 --> S3
         @Continue: --> SX
