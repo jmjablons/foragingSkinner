@@ -76,22 +76,19 @@ S2,
 \-----------------------------------------------------------
 S.S.4
 S1,
-  #START: --> SX
+  #START: --> S2
 
 S2,
-  #R^Right: ADD A; Z4 --> SX
-  #R^Left: ADD A; Z5 --> SX
-  #R^Center: ADD A; Z6 --> SX
-  #R^Nosepoke: ADD C; Z7; SET W = 0 --> SX
+  #R^Right: ADD A; Z4 --> S1
+  #R^Left: ADD A; Z5 --> S1
+  #R^Center: ADD A; Z6 --> S1
+  #R^Nosepoke: ADD C; Z7; SET W = 0 --> S1
 
 \-----------------------------------------------------------
 \STATE DISPLAY
 \-----------------------------------------------------------
 S.S.5
 S1,
-  #START --> S2
-
-S2,
   1": SHOW 1,Session,N;
       SHOW 2,Choices,A;
       SHOW 3,Rewards,B;
