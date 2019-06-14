@@ -21,13 +21,13 @@
 \ C  number of nosepokes
 \ R  data array responses
 \ M  max time min
-\ N  session timer 1"
 \ T  session timer 0.01"
 \ Q  maximum rewards
 \ W  food available
 \ X  FR
 
-DIM R = 500000
+DIM R = 100000
+DISKCOLUMNS = 2
 \TODO define which side is rewarded
 \ --- now see: S.S.1(S2)
 
@@ -40,36 +40,39 @@ S1,
           ON ^HouseFanOperate;
           ON ^HouseLightOperate --> S2
 
-S2,
+S2, \MAIN TASK
   X#R^Left: Z21 --> S3 \DO REPETITIONS
 
-S3,
-  #R^Right: Z22 --> S4      \BAD IDEA
-  #R^Left: Z22 --> S4       \NOPE
-  #R^Center: Z22 --> S4     \CALL IT A MISTAKE
-  #R^Nosepoke: --> S2       \WELL DONE
+S3, \CHECK FOR NEXT REACTION & PUNISH IF NEEDED
+  #R^Right:   OFF ^HouseLightOperate; Z0 --> S4     \BAD IDEA
+  #R^Left:    OFF ^HouseLightOperate; Z0 --> S4     \NOPE
+  #R^Center:  OFF ^HouseLightOperate; Z0 --> S4     \CALL IT A MISTAKE
+  #R^Nosepoke: Z0 --> S2                             \WELL DONE
 
-S4, \PUNISH
-  #Z22: OFF ^HouseLightOperate; \+ OFF ^MAGAZINE LIGHT?
-        Z10 --> S5
-
-S5, \END TIMEOUT
+S4, \TIMEOUT
   60": ON ^HouseLightOperate --> S2
+
+S5,
+  Z0: IF (Q <= B) OR (T/60 <= M) [@End, @Continue]
+          @End: SET R(I) = -987.987 --> S6
+          @Continue: --> SX
+
+S6,
+  1": --> STOPABORTFLUSH
+
 
 \-----------------------------------------------------------
 \OPERATE FOOD
 \-----------------------------------------------------------
-S.S.3
+S.S.3 \COMMENT: MAGAZINE LIGHT?
 S1,
   #Z21: ON ^PelletDispenser;
         ADD B;
-        ON ^MagazineLight;
         SET W = 1;
         Z9 --> S2
 
 S2,
-  0.5": OFF ^PelletDispenser;
-        OFF ^MagazineLight --> S1
+  0.5": OFF ^PelletDispenser --> S1
 
 \-----------------------------------------------------------
 \RESPONSE DETECT
@@ -89,7 +92,7 @@ S2,
 \-----------------------------------------------------------
 S.S.5
 S1,
-  1": SHOW 1,Session,N;
+  1": SHOW 1,Session,T;
       SHOW 2,Choices,A;
       SHOW 3,Rewards,B;
       SHOW 4,Nosepokes,C --> SX
@@ -119,18 +122,3 @@ S2,
   #Z7: Z0; SET R(I) = 5; ADD I --> SX \NOSEPOKE
   #Z9: Z0; SET R(I) = 4; ADD I --> SX \FOOD GIVEN
   #Z10:Z0; SET R(I) = 6; ADD I --> SX \IF TIMEOUT
-
-\-----------------------------------------------------------
-\FINISH CONDITIONS
-\-----------------------------------------------------------
-S.S.8
-S1,
-  #START: --> S2
-S2,
-  0.1": ADD N; SHOW 1,Session, N/60;
-      IF (N/60 <= M) OR (Q <= B) [@End, @Continue]
-        @End: SET N(G) = -987.987 --> S3
-        @Continue: --> SX
-
-S3,
-  3": PRINT --> STOPABORTFLUSH
