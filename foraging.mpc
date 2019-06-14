@@ -28,13 +28,21 @@ DIM R = 500000
 
 S.S.1 \MAIN TASK
 S1,
-  0.01": SET Q = 100, M = 60, X = 5 --> S2
+  #START:: SET Q = 100, M = 60, X = 5 --> S2
 
 S2,
-  #START: --> S3
+  X#R^L: ON ^PelletDispenser; ADD B, Z9 --> S3
 
 S3,
-  X#R^L: ON ^PelletDispenser; ADD B, Z9 --> S4
+#R^R: ADD A, Z4 --> S4
+#R^L: ADD A, Z5 --> S4
+#R^C: ADD A, Z6 --> S4
+#R^P: ADD C, Z7 --> S2
+
+
+S4,
+
+zly czas: ---> s2
 
 S4,
   0.5": OFF ^PelletDispenser --> S2 \DIRTY; CHECK VALUE
