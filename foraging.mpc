@@ -1,15 +1,19 @@
 \foraging
 \Date: 2019.06.12
-
+\Edit: 2019.06.14
+\-----------------------------------------------------------
 \INPUTS
-^L = 1
-^R = 2
-^C = 3
-^Nosepoke = 4
+^Left = 1   \CHECK
+^Right = 2  \CHECK
+^Center = 3
+^Nosepoke = 6
 
 \OUTPUTS
-^Light = 1
-^PelletDispenser = 2
+^PelletDispenser = 12
+^CenterHoleLight = 3
+^HouseFanOperate = 9
+^HouseLightOperate = 11
+^MagazineLight = 10
 
 \VARIABLES
 \ A  number of choices
@@ -17,77 +21,97 @@
 \ C  number of nosepokes
 \ R  data array responses
 \ M  max time min
-\ N  session timer 1"
 \ T  session timer 0.01"
 \ Q  maximum rewards
+\ W  food available
 \ X  FR
 
-DIM R = 500000
+DIM R = 100000
+DISKCOLUMNS = 3
 \TODO define which side is rewarded
-\ --- now see: S.S.1(S3)
+\ --- now see: S.S.1(S2)
 
-S.S.1 \MAIN TASK
+\-----------------------------------------------------------
+\MAIN TASK
+\-----------------------------------------------------------
+S.S.1
 S1,
-  0.01": SET Q = 100, M = 60, X = 5 --> S2
+  #START: SET Q = 100, M = 60, X = 5;
+          ON ^HouseFanOperate;
+          ON ^HouseLightOperate --> S2
+
+S2, \MAIN TASK
+  X#R^Left: Z21 --> S3 \DO REPETITIONS
+
+S3, \CHECK FOR NEXT REACTION & PUNISH IF NEEDED
+  #R^Right:     OFF ^HouseLightOperate --> S4     \BAD IDEA
+  #R^Left:      OFF ^HouseLightOperate --> S4     \NOPE
+  #R^Center:    OFF ^HouseLightOperate --> S4     \CALL IT A MISTAKE
+  #R^Nosepoke:  --> S2                            \WELL DONE
+
+S4, \TIMEOUT
+  60": ON ^HouseLightOperate --> S2
+
+\-----------------------------------------------------------
+\OPERATE FOOD
+\-----------------------------------------------------------
+S.S.3 \COMMENT: MAGAZINE LIGHT?
+S1,
+  #Z21: ON ^PelletDispenser;
+        ADD B;
+        Z9 --> S2
 
 S2,
-  #START: --> S3
+  0.5": OFF ^PelletDispenser --> S1
 
-S3,
-  X#R^L: ON ^PelletDispenser; ADD B, Z9 --> S4
-
-S4,
-  0.5": OFF ^PelletDispenser --> S2 \DIRTY; CHECK VALUE
-
-S.S.2 \RESPONSE DETECT
-\shouldnt reactions be separated?
-\ --- to ensure each is saved the same time?
+\-----------------------------------------------------------
+\RESPONSE DETECT
+\-----------------------------------------------------------
+S.S.4
 S1,
-  #START: --> SX
+  #START: --> S2
 
 S2,
-  #R^R: ADD A, Z4 --> SX
-  #R^L: ADD A, Z5 --> SX
-  #R^C: ADD A, Z6 --> SX
-  #R^P: ADD C, Z7 --> SX
+  #R^Right: ADD A; Z4 --> S1
+  #R^Left: ADD A; Z5 --> S1
+  #R^Center: ADD A; Z6 --> S1
+  #R^Nosepoke: ADD C; Z7 --> S1
 
-S.S.3 \STATE DISPLAY
+\-----------------------------------------------------------
+\STATE DISPLAY
+\-----------------------------------------------------------
+S.S.5
 S1,
-  #START --> S2
-
-S2,
-  1": SHOW 1,Session,N;
+  1": SHOW 1,Session,T;
       SHOW 2,Choices,A;
       SHOW 3,Rewards,B;
       SHOW 4,Nosepokes,C --> SX
 
-S.S.4 \TIME INCREMENT
+\-----------------------------------------------------------
+\TIME INCREMENT
+\-----------------------------------------------------------
+S.S.6
 S1,
   #START: --> S2
 
 S2,
-  0.01": SET T = T + 0.01 --> SX
+  0.01": SET T = T + 0.01;
+        IF (Q <= B) OR (T/60 <= M) [@End, @Continue]
+            @End: SET R(I) = -987.987 --> STOPABORTFLUSH
+            @Continue: --> SX
 
-S.S.5 \RECORD TIME IRT
+\-----------------------------------------------------------
+\RECORD EVENT IRT
+\-----------------------------------------------------------
+S.S.7
 S1,
   #START: --> S2
 
 S2,
-  #Z0: SET R(I) = T; ADD I;
-  #Z4: Z0; SET R(I) = 1; ADD I --> SX \STRING OR NUMERIC?
-  #Z5: Z0; SET R(I) = 2; ADD I --> SX
-  #Z6: Z0; SET R(I) = 3; ADD I --> SX
-  #Z7: Z0; SET R(I) = 5; ADD I --> SX
-  #Z9: Z0; SET R(I) = 4; ADD I --> SX
-
-S.S.6 \FINISH CONDITIONS
-S1,
-  #START: --> S2
-S2,s
-  1": ADD N; SHOW 1,Session, N/60;
-      IF (N/60 <= M) OR (Q <= B) [@End, @Continue]
-        @End: SET N(G) = -987.987 --> S3
-        @Continue: --> SX
-
-S3,
-  3": PRINT --> STOPABORTFLUSH
+  #Z0: SET R(I) = T; ADD I; SET R(I) = B; ADD I --> SX \TIME
+  #Z4: Z0; SET R(I) = 1; ADD I --> SX \RIGHT
+  #Z5: Z0; SET R(I) = 2; ADD I --> SX \LEFT
+  #Z6: Z0; SET R(I) = 3; ADD I --> SX \CENTER
+  #Z7: Z0; SET R(I) = 5; ADD I --> SX \NOSEPOKE
+  #Z9: Z0; SET R(I) = 4; ADD I --> SX \FOOD GIVEN
+  #Z10:Z0; SET R(I) = 6; ADD I --> SX \IF TIMEOUT
